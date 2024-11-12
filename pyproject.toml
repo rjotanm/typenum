@@ -1,0 +1,50 @@
+[tool.poetry]
+package-mode = true
+name = "typenum"
+version = "0.1.0"
+
+authors = [
+    "Rinat Balbekov <me@rjotanm.dev>",
+]
+
+description = "Type-containing enumeration"
+repository = "https://github.com/rjotanm/typenum"
+license = "MIT"
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Pydantic",
+    "Framework :: Pydantic :: 2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+packages = [
+    { include = "typenum" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+po-case-conversion = "^0.4.0"
+
+pydantic = { version = ">=2.9.0", optional = true }
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.13.0"
+
+[tool.poetry.extras]
+pydantic = ["pydantic"]
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
