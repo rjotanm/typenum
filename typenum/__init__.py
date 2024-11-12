@@ -6,6 +6,6 @@ __all__ = [
     "TypEnumContent",
 ]
 
-__package_name__ = 'typenum'
-__version__ = '0.1.0'
-__description__ = ''
+__package_name__ = "typenum"
+__version__ = "0.1.1"
+__description__ = "Type-containing enumeration"
