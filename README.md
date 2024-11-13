@@ -41,7 +41,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 
 from typenum import TypEnum, TypEnumContent
-from typenum.pydantic import TypEnumPydantic, FieldMetadata, Rename, NameConversion, SerializationVariants
+from typenum.pydantic import TypEnumPydantic, FieldMetadata, Rename, SerializationVariants
 from typing_extensions import Annotated
 
 
@@ -66,7 +66,6 @@ class OtherEnum(TypEnum[TypEnumContent], TypEnumPydantic):
 class MyEnum(
     TypEnum[TypEnumContent],
     TypEnumPydantic,
-    name_conversion=NameConversion.SnakeCase,  # optional name conversion within serialization
     serialization=SerializationVariants.Nested(),  # default value
     # serialization=SerializationVariants.Separated("key", "value"),
 ):
