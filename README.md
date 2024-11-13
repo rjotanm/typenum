@@ -117,43 +117,43 @@ def dump_and_load(e: MyEnum):
     assert model == restored
 
 
-# nested -> {"enum":{"int":1}} 
-# separated -> {"enum":{"key":"int","value":1}}
+# nested -> {"enum":{"Int":1}} 
+# separated -> {"enum":{"key":"Int","value":1}}
 dump_and_load(MyEnum.Int(1))
 
-# nested -> {"enum":{"str":"str"}}
-# separated -> {"enum":{"key":"str","value":"str"}}
+# nested -> {"enum":{"Str":"str"}}
+# separated -> {"enum":{"key":"Str","value":"str"}}
 dump_and_load(MyEnum.Str("str"))
 
-# nested -> {"enum":{"list":["list"]}}
-# separated -> {"enum":{"key":"list","value":["list"]}}
+# nested -> {"enum":{"List":["list"]}}
+# separated -> {"enum":{"key":"List","value":["list"]}}
 dump_and_load(MyEnum.List(["list"]))
 
 # nested -> {"enum":{"just_str_tuple":["str","str2"]}} 
 # separated -> {"enum":{"key":"just_str_tuple","value":["str","str2"]}}
 dump_and_load(MyEnum.StrTuple(("str", "str2")))
 
-# nested -> {"enum":{"self":{"int":1}}} 
-# separated -> {"enum":{"key":"self","value":{"key":"int","value":1}}}
+# nested -> {"enum":{"Self":{"Int":1}}} 
+# separated -> {"enum":{"key":"Self","value":{"key":"Int","value":1}}}
 dump_and_load(MyEnum.Self(MyEnum.Int(1)))
 
-# nested -> {"enum":{"dc":{"a":1}}} 
-# separated -> {"enum":{"key":"dc","value":{"a":1}}}
+# nested -> {"enum":{"DC":{"a":1}}} 
+# separated -> {"enum":{"key":"DC","value":{"a":1}}}
 dump_and_load(MyEnum.DC(TestDataClass(a=1)))
 
-# nested -> {"enum":{"model":{"b":"test_model"}}} 
-# separated -> {"enum":{"key":"model","value":{"b":"test_model"}}}
+# nested -> {"enum":{"Model":{"b":"test_model"}}} 
+# separated -> {"enum":{"key":"Model","value":{"b":"test_model"}}}
 dump_and_load(MyEnum.Model(TestModel(b="test_model")))
 
-# nested -> {"enum":{"dict":{"a":"1","b":"2"}}} 
-# separated -> {"enum":{"key":"dict","value":{"a":"1","b":"2"}}}
+# nested -> {"enum":{"Dict":{"a":"1","b":"2"}}} 
+# separated -> {"enum":{"key":"Dict","value":{"a":"1","b":"2"}}}
 dump_and_load(MyEnum.Dict({"a": "1", "b": "2"}))
 
-# nested -> {"enum":"only_self"}
-# separated -> {"enum":{"key":"only_self"}}
+# nested -> {"enum":"OnlySelf"}
+# separated -> {"enum":{"key":"OnlySelf"}}
 dump_and_load(MyEnum.OnlySelf(...))
 
-# nested -> {"enum":{"only_self2":null}} 
-# separated -> {"enum":{"key":"only_self2","value":null}}
+# nested -> {"enum":{"OnlySelf2":null}} 
+# separated -> {"enum":{"key":"OnlySelf2","value":null}}
 dump_and_load(MyEnum.OnlySelf2(None))
 ```
