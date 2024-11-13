@@ -4,8 +4,6 @@ if tuple(map(int, pydantic.version.VERSION.split('.'))) < (2, 9, 0):
     raise ValueError("Pydantic version must be >=2.9.0")
 
 from .core import (
-    NameConversion,
-    NameConversionFunc,
     Rename,
     FieldMetadata,
     TypEnumPydantic,
@@ -21,8 +19,6 @@ __all__ = [
     "FieldMetadata",
     "TypEnumPydantic",
     "Rename",
-    "NameConversion",
-    "NameConversionFunc",
     "SerializationVariants",
     "TypEnumSerialization",
     "TypEnumSerializationNested",

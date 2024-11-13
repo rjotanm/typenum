@@ -1,7 +1,7 @@
 [tool.poetry]
 package-mode = true
 name = "typenum"
-version = "0.1.1"
+version = "0.2.0"
 
 authors = [
     "Rinat Balbekov <me@rjotanm.dev>",
@@ -34,7 +34,6 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-po-case-conversion = "^0.4.0"
 
 pydantic = { version = ">=2.9.0", optional = true }
 

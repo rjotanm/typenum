@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 import typing_extensions
 from annotated_types import GroupedMetadata, BaseMetadata
-from po_case_conversion import case_conversion as cc
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema, core_schema
 from pydantic_core.core_schema import SerializerFunctionWrapHandler, ValidationInfo
@@ -13,28 +12,12 @@ from pydantic_core.core_schema import SerializerFunctionWrapHandler, ValidationI
 from typenum.core import TypEnum, TypEnumMeta, _TypEnum
 
 __all__ = [
-    "NameConversion",
     "Rename",
-    "NameConversionFunc",
     "FieldMetadata",
     "TypEnumPydantic",
 ]
 
 from typenum.pydantic.serialization import TypEnumSerialization, TypEnumSerializationNested
-
-NameConversionFunc = typing.Callable[[str, typing.Optional[list[str]]], str]
-
-
-class NameConversion:
-    CamelCase = cc.camelcase
-    PascalCase = cc.pascalcase
-    SnakeCase = cc.snakecase
-    DashCase = cc.dashcase
-    ConstCase = cc.constcase
-    DotCase = cc.dotcase
-    SeparateWords = cc.separate_words
-    SlashCase = cc.slashcase
-    BackslashCase = cc.backslashcase
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,7 +47,6 @@ class _TypEnumPydanticMeta(TypEnumMeta):
             cls_name: str,
             bases: tuple,
             class_dict: dict,
-            name_conversion: typing.Optional[NameConversionFunc] = None,
             serialization: TypEnumSerialization = TypEnumSerializationNested(),
     ):
         enum_class = super().__new__(cls, cls_name, bases, class_dict)
@@ -110,16 +92,6 @@ class _TypEnumPydanticMeta(TypEnumMeta):
 
                         enum_class.__names_serialization__[attr] = __meta__.value
                         enum_class.__names_deserialization__[__meta__.value] = attr
-
-            if name_conversion is not None and attr not in enum_class.__names_serialization__:
-                attr_converted = name_conversion(attr, [])
-                enum_class.__names_serialization__[attr] = attr_converted
-                if (
-                        attr_converted in enum_class.__names_deserialization__ and
-                        enum_class.__names_deserialization__[attr_converted] != attr
-                ):
-                    raise ValueError(f"{cls_name}: Two or many field renamed to `{attr_converted}`")
-                enum_class.__names_deserialization__[attr_converted] = attr
 
         return enum_class
 
