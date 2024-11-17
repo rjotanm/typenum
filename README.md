@@ -79,7 +79,7 @@ class OtherEnum(TypEnumPydantic[TypEnumContent]):
 
 # class MyEnum(TypEnumPydantic[TypEnumContent], variant="key", content="value"): <- adjacently
 # class MyEnum(TypEnumPydantic[TypEnumContent], variant="key"): <- internally
-class MyEnum(TypEnumPydantic[TypEnumContent]):  # <- externally
+class MyEnum(TypEnumPydantic[TypEnumContent]):  # <- externally, default
     # MyEnum.Int(123)
     Int: type["MyEnum[int]"]
 
@@ -132,27 +132,27 @@ def dump_and_load(e: MyEnum):
 
 # externally -> {"enum":{"Int":1}} 
 # adjacently -> {"enum":{"key":"Int","value":1}}
-# internally -> not_supported
+# internally -> not supported
 dump_and_load(MyEnum.Int(1))
 
 # externally -> {"enum":{"Str":"str"}}
 # adjacently -> {"enum":{"key":"Str","value":"str"}}
-# internally -> not_supported
+# internally -> not supported
 dump_and_load(MyEnum.Str("str"))
 
 # externally -> {"enum":{"List":["list"]}}
 # adjacently -> {"enum":{"key":"List","value":["list"]}}
-# internally -> not_supported
+# internally -> not supported
 dump_and_load(MyEnum.List(["list"]))
 
 # externally -> {"enum":{"just_str_tuple":["str","str2"]}} 
 # adjacently -> {"enum":{"key":"just_str_tuple","value":["str","str2"]}}
-# internally -> not_supported
+# internally -> not supported
 dump_and_load(MyEnum.StringTuple(("str", "str2")))
 
 # externally -> {"enum":{"Self":{"Int":1}}} 
 # adjacently -> {"enum":{"key":"Self","value":{"key":"Int","value":1}}}
-# internally -> not_supported
+# internally -> not supported
 dump_and_load(MyEnum.Self(MyEnum.Int(1)))
 
 # externally -> {"enum":{"DC":{"a":1}}} 
@@ -172,7 +172,7 @@ dump_and_load(MyEnum.TypedDict(TestTypedDict(tm=TestModel(b="test_model"))))
 
 # externally -> {"enum":{"Dict":{"a":"1","b":"2"}}} 
 # adjacently -> {"enum":{"key":"Dict","value":{"a":"1","b":"2"}}}
-# internally -> not_supported
+# internally -> not supported
 dump_and_load(MyEnum.Dict({"a": "1", "b": "2"}))
 
 # externally -> {"enum":"NoValue"}
@@ -182,10 +182,11 @@ dump_and_load(MyEnum.NoValue(...))
 
 # externally -> {"enum":{"Optional":null}} 
 # adjacently -> {"enum":{"key":"Optional","value":null}}
-# internally -> not_supported
+# internally -> not supported
 dump_and_load(MyEnum.Optional(None))
 ```
 
 #### Other
 
  - [Compatibility](docs/compatibility.md)
+ - [Limitations](docs/limitations.md)
