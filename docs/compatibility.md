@@ -22,6 +22,9 @@ struct BStr {
     b: String,
 }
 
+// #[serde(tag = "key", content = "value")] <- adjacently
+// #[serde(tag = "key")] <- internally
+// without option (now) <- externally
 #[derive(Serialize, Deserialize)]
 enum MyEnum<'a> {
     Int(i32),
@@ -50,57 +53,70 @@ fn main() {
     // externally -> {"enum":{"Int":1}}
     // adjacently -> {"enum":{"key":"Int","value":1}}
     // internally -> not_supported
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::Int(1) }).unwrap());
+    // python: MyEnum.Int(1)
+    dump(MyEnum::Int(1));
 
     // externally -> {"enum":{"Str":"str"}}
     // adjacently -> {"enum":{"key":"Str","value":"str"}}
     // internally -> not_supported
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::Str("str".to_string()) }).unwrap());
+    // python: MyEnum.Str("str")
+    dump(MyEnum::Str("str".to_string()) );
 
     // externally -> {"enum":{"List":["list"]}}
     // adjacently -> {"enum":{"key":"List","value":["list"]}}
     // internally -> not_supported
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::List(vec!["list".to_string()]) }).unwrap());
+    // python: MyEnum.List(["list"])
+    dump(MyEnum::List(vec!["list".to_string()]));
 
     // externally -> {"enum":{"just_str_tuple":["str","str2"]}}
     // adjacently -> {"enum":{"key":"just_str_tuple","value":["str","str2"]}}
     // internally -> not_supported
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::StringTuple(("str", "str2")) }).unwrap());
+    // python: MyEnum.StringTuple(("str", "str2"))
+    dump(MyEnum::StringTuple(("str", "str2")));
 
     // externally -> {"enum":{"Self":{"Int":1}}}
     // adjacently -> {"enum":{"key":"Self","value":{"key":"Int","value":1}}}
     // internally -> not_supported
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::Self_(Box::new(MyEnum::Int(1))) }).unwrap());
+    // python: MyEnum.Self(MyEnum.Int(1))
+    dump(MyEnum::Self_(Box::new(MyEnum::Int(1))));
 
     // externally -> {"enum":{"DataClass":{"a":1}}}
     // adjacently -> {"enum":{"key":"DC","value":{"a":1}}}
     // internally -> {"enum":{"key":"DC","a":1}}}
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::DataClass(AI32 { a: 1 }) }).unwrap());
+    // python: MyEnum.DataClass(TestDataClass(a=1))
+    dump(MyEnum::DataClass(AI32 { a: 1 }));
 
     // externally -> {"enum":{"Model":{"b":"test_model"}}}
     // adjacently -> {"enum":{"key":"Model","value":{"b":"test_model"}}}
     // internally -> {"enum":{"key":"Model", "b":"test_model"}}
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::Model(BStr { b: "test_model".to_string() }) }).unwrap());
+    // python: MyEnum.Model(TestModel(b="test_model"))
+    dump(MyEnum::Model(BStr { b: "test_model".to_string() }));
+
 
     // externally -> {"enum":{"TypedDict":{"tm":{"b":"test_model"}}}}
     // adjacently -> {"enum":{"key":"TypedDict","value":{"tm":{"b":"test_model"}}}}
     // internally -> {"enum":{"key":"TypedDict","tm":{"b":"test_model"}}}
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::TypedDict { tm: BStr { b: "test_model".to_string() } } }).unwrap());
+    // python: MyEnum.TypedDict(TestTypedDict(tm=TestModel(b="test_model")))
+    // python doesn`t have inline TypedDict now
+    dump(MyEnum::TypedDict { tm: BStr { b: "test_model".to_string() } });
 
     // externally -> {"enum":{"Dict":{"a":"1","b":"2"}}}
     // adjacently -> {"enum":{"key":"Dict","value":{"a":"1","b":"2"}}}
     // internally -> not_supported
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::Dict(HashMap::from([("a".to_string(), "1".to_string()), ("b".to_string(), "2".to_string())])) }).unwrap());
+    // python: MyEnum.Dict({"a": "1", "b": "2"})
+    dump(MyEnum::Dict(HashMap::from([("a".to_string(), "1".to_string()), ("b".to_string(), "2".to_string())])));
 
     // externally -> {"enum":"NoValue"}
     // adjacently -> {"enum":{"key":"NoValue"}}
     // internally -> {"enum":{"key":"NoValue"}}
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::NoValue } ).unwrap());
+    // python: MyEnum.NoValue(...)
+    dump(MyEnum::NoValue);
 
     // externally -> {"enum":{"Optional":null}}
     // adjacently -> {"enum":{"key":"Optional","value":null}}
     // internally -> not_supported
-    println!("{}", serde_json::to_string(&FinModel { enum_: MyEnum::Optional(None) } ).unwrap());
+    // python: MyEnum.Optional(None)
+    dump(MyEnum::Optional(None));
 }
 ```
 
