@@ -126,11 +126,8 @@ class TypEnumPydantic(_TypEnum[TypEnumContent], metaclass=TypEnumPydanticMeta):
         if isinstance(__content_type__, str):
             __content_type__ = eval_content_type(cls)
 
-        if inspect.isclass(__content_type__):
-            if issubclass(__content_type__, TypEnumPydantic):
-                value = cls.__python_value_restore__(value, info)
-        elif __content_type__ is not None and not isinstance(__content_type__, str):
-            value = __content_type__(value)
+        if inspect.isclass(__content_type__) and issubclass(__content_type__, TypEnumPydantic):
+            value = cls.__python_value_restore__(value, info)
 
         return cls(value)
 
