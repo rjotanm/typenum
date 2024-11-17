@@ -2,26 +2,37 @@ import types
 import typing
 
 __all__ = [
+    "NoValue",
     "TypEnum",
     "TypEnumContent",
     "TypEnumMeta",
 ]
 
-
-import typing_extensions
+from annotated_types import BaseMetadata
+from typing_extensions import Annotated
 
 TypEnumContent = typing.TypeVar("TypEnumContent")
 
 
+NoValue = types.EllipsisType
+
+
 class TypEnumMeta(type):
+    __full_variant_name__: str
+    __variant_name__: str
+
+    __content_type__: typing.Union[str, type[typing.Any]]
+
+    __variants__: dict[type['_TypEnum[typing.Any]'], str]
+
     __is_variant__: bool = False
 
     def __new__(
             cls,
             cls_name: str,
-            bases: tuple,
-            class_dict: dict,
-    ):
+            bases: tuple[typing.Any],
+            class_dict: dict[str, typing.Any],
+    ) -> typing.Any:
         enum_class = super().__new__(cls, cls_name, bases, class_dict)
 
         if enum_class.__is_variant__:
@@ -32,14 +43,13 @@ class TypEnumMeta(type):
         enum_class.__full_variant_name__ = cls_name
         enum_class.__variant_name__ = cls_name
 
+        annotation: typing.Union[type[Annotated[typing.Any, BaseMetadata]], type]
         for attr, annotation in enum_class.__annotations__.items():
             if not hasattr(annotation, "__args__"):
                 continue
 
-            is_annotated = isinstance(annotation, typing._AnnotatedAlias)  # noqa
-            if is_annotated:
-                annotation: type[typing_extensions.Annotated]
-                origin = typing.get_args(annotation.__origin__)[0]
+            if (__origin__ := getattr(annotation, "__origin__", None)) and annotation.__name__ == "Annotated":
+                origin = typing.get_args(__origin__)[0]
             else:
                 is_type = isinstance(annotation, types.GenericAlias) and annotation.__name__ == "type"
                 if not is_type:
@@ -49,11 +59,10 @@ class TypEnumMeta(type):
 
             split = origin[:-1].split("[", maxsplit=1)
 
+            content_type: str | type[typing.Any]
             if len(split) == 1:
-                type_not_present = True
-                content_type = None
+                content_type = NoValue
             else:
-                type_not_present = False
                 left, right = split
                 if left != enum_class.__name__:
                     continue
@@ -77,13 +86,11 @@ class TypEnumMeta(type):
                 variant_base = enum_class
 
             class _EnumVariant(variant_base):  # type: ignore
-                __full_variant_name__ = __name__ = f"{enum_class.__name__}.{attr}"
-                __variant_name__ = attr
-
-                __content_type__ = content_type
-                __type_not_present__ = type_not_present
-
                 __is_variant__ = True
+
+            _EnumVariant.__name__ = _EnumVariant.__full_variant_name__ = f"{enum_class.__name__}.{attr}"
+            _EnumVariant.__variant_name__ = attr
+            _EnumVariant.__content_type__ = content_type
 
             enum_class.__variants__[_EnumVariant] = attr
 
@@ -91,38 +98,37 @@ class TypEnumMeta(type):
 
         return enum_class
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return getattr(self, "__full_variant_name__", self.__class__.__name__)
 
 
 class _TypEnum(typing.Generic[TypEnumContent], metaclass=TypEnumMeta):
     __match_args__ = ("value",)
 
-    __full_variant_name__: str
-    __variant_name__: str
+    __full_variant_name__: typing.ClassVar[str]
+    __variant_name__: typing.ClassVar[str]
 
-    __content_type__: type['_TypEnum'] | str | None
-    __type_not_present__: bool
+    __content_type__: typing.ClassVar[typing.Union[str, type[typing.Any]]]
 
-    __variants__: dict[type['_TypEnum'], str]
+    __variants__: typing.ClassVar[dict[type['_TypEnum[typing.Any]'], str]]
 
-    __is_variant__: bool = False
+    __is_variant__: typing.ClassVar[bool] = False
 
-    value: TypEnumContent
+    value: typing.Optional[TypEnumContent]
 
     def __init__(self, value: TypEnumContent):
-        if self.__type_not_present__:
-            self.value = ...
+        if self.__content_type__ is NoValue:
+            self.value = None
         else:
             self.value = value
 
     def __repr__(self) -> str:
-        if self.__type_not_present__:
+        if self.__content_type__ is NoValue:
             return f"{self.__full_variant_name__}()"
         return f"{self.__full_variant_name__}({self.value.__repr__()})"
 
-    def __eq__(self, other: 'TypEnum') -> bool:
-        if not isinstance(other, TypEnum):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _TypEnum):
             return False
 
         return self.__class__ == other.__class__ and self.value == other.value

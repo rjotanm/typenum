@@ -5,22 +5,23 @@ if tuple(map(int, pydantic.version.VERSION.split('.'))) < (2, 9, 0):
 
 from .core import (
     Rename,
-    FieldMetadata,
     TypEnumPydantic,
+    FieldMetadata,
 )
-from .serialization import (
-    SerializationVariants,
-    TypEnumSerialization,
-    TypEnumSerializationNested,
-    TypEnumSerializationSeparated,
+
+from .variance import (
+    TypEnumNested,
+    TypEnumSeparated,
+    TypEnumDiscriminant,
+    TypEnumDContent,
 )
 
 __all__ = [
     "FieldMetadata",
-    "TypEnumPydantic",
     "Rename",
-    "SerializationVariants",
-    "TypEnumSerialization",
-    "TypEnumSerializationNested",
-    "TypEnumSerializationSeparated",
+    "TypEnumPydantic",
+    "TypEnumNested",
+    "TypEnumSeparated",
+    "TypEnumDiscriminant",
+    "TypEnumDContent",
 ]

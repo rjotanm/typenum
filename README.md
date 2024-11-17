@@ -36,13 +36,19 @@ assert a
 
 #### With pydantic
 ```python
+import typing
 from dataclasses import dataclass
 
 from pydantic import BaseModel
 
-from typenum import TypEnum, TypEnumContent
-from typenum.pydantic import TypEnumPydantic, FieldMetadata, Rename, SerializationVariants
-from typing_extensions import Annotated
+from typenum import TypEnum, TypEnumContent, NoValue
+from typenum.pydantic import TypEnumSeparated, TypEnumNested, TypEnumDiscriminant, TypEnumDContent, FieldMetadata, Rename
+from typing_extensions import Annotated, TypedDict
+
+
+class Enum(TypEnum[NoValue]):
+    V1: type["Enum"]
+    V2: type["Enum"]
 
 
 @dataclass
@@ -53,22 +59,24 @@ class TestDataClass:
 class TestModel(BaseModel):
     b: str
 
+    
+class TestTypedDict(TypedDict):
+    tm: TestModel
 
-class SimpleEnum(TypEnum, TypEnumPydantic):
+
+class SimpleEnum(TypEnumSeparated[NoValue]):
     V1: type["SimpleEnum"]
     V2: type["SimpleEnum"]
 
 
-class OtherEnum(TypEnum[TypEnumContent], TypEnumPydantic):
+class OtherEnum(TypEnumNested[TypEnumContent]):
     Int: type["OtherEnum[int]"]
+    Int: type["OtherEnum[str]"]
 
 
-class MyEnum(
-    TypEnum[TypEnumContent],
-    TypEnumPydantic,
-    serialization=SerializationVariants.Nested(),  # default value
-    # serialization=SerializationVariants.Separated("key", "value"),
-):
+# class MyEnum(TypEnumDiscriminated[TypEnumContent], discriminant="key"): 
+# class MyEnum(TypEnumSeparated[TypEnumContent], key="key", value="value"):
+class MyEnum(TypEnumNested[TypEnumContent]):
     # MyEnum.Int(123)
     Int: type["MyEnum[int]"]
 
@@ -76,13 +84,13 @@ class MyEnum(
     Str: type["MyEnum[str]"]
 
     # MyEnum.Str(OtherEnum.Int(1))
-    Other: type["MyEnum[OtherEnum]"]  # any from OtherEnum variants
+    Other: type["MyEnum[OtherEnum[Any]]"]  # any from OtherEnum variants
 
     # MyEnum.Str(MyEnum.Int(1)) | MyEnum.Str(MyEnum.Str(1))
-    Self: type["MyEnum[MyEnum]"]  # any from self variants
+    Self: type["MyEnum[MyEnum[typing.Any]]"]  # any from self variants
 
     # MyEnum.OnlySelf(...) - any parameters skipped, serialized just by name 
-    OnlySelf: type["MyEnum"] 
+    OnlySelf: type["MyEnum[NoValue]"] 
 
     # MyEnum.OnlySelf2(None)
     OnlySelf2: type["MyEnum[None]"]
@@ -97,7 +105,10 @@ class MyEnum(
     DC: type["MyEnum[TestDataClass]"]
     
     # MyEnum.Model(TestModel(b="2"))
-    Model: type["MyEnum[TestModel]"]
+    Model: type["MyEnum[TestModel]"]    
+    
+    # MyEnum.TT(TestTypedDict(tm=TestModel(b="nice")))
+    TT: type["MyEnum[TestTypedDict]"]
 
     # MyEnum.StrTuple(("1", "2")))
     StrTuple: Annotated[type["MyEnum[tuple[str, str]]"], FieldMetadata(rename="just_str_tuple")]
@@ -119,41 +130,56 @@ def dump_and_load(e: MyEnum):
 
 # nested -> {"enum":{"Int":1}} 
 # separated -> {"enum":{"key":"Int","value":1}}
+# discriminated -> not_supported
 dump_and_load(MyEnum.Int(1))
 
 # nested -> {"enum":{"Str":"str"}}
 # separated -> {"enum":{"key":"Str","value":"str"}}
+# discriminated -> not_supported
 dump_and_load(MyEnum.Str("str"))
 
 # nested -> {"enum":{"List":["list"]}}
 # separated -> {"enum":{"key":"List","value":["list"]}}
+# discriminated -> not_supported
 dump_and_load(MyEnum.List(["list"]))
 
 # nested -> {"enum":{"just_str_tuple":["str","str2"]}} 
 # separated -> {"enum":{"key":"just_str_tuple","value":["str","str2"]}}
+# discriminated -> not_supported
 dump_and_load(MyEnum.StrTuple(("str", "str2")))
 
 # nested -> {"enum":{"Self":{"Int":1}}} 
 # separated -> {"enum":{"key":"Self","value":{"key":"Int","value":1}}}
+# discriminated -> not_supported
 dump_and_load(MyEnum.Self(MyEnum.Int(1)))
 
 # nested -> {"enum":{"DC":{"a":1}}} 
 # separated -> {"enum":{"key":"DC","value":{"a":1}}}
+# discriminated -> {"enum":{"key":"DC","a":1}}}
 dump_and_load(MyEnum.DC(TestDataClass(a=1)))
 
 # nested -> {"enum":{"Model":{"b":"test_model"}}} 
 # separated -> {"enum":{"key":"Model","value":{"b":"test_model"}}}
+# discriminated -> {"enum":{"key":"Model", "b":"test_model"}}
 dump_and_load(MyEnum.Model(TestModel(b="test_model")))
+
+# nested -> {"enum":{"TT":{"tm":{"b":"test_model"}}}} 
+# separated -> {"enum":{"key":"TT","value":{"tm":{"b":"test_model"}}}}
+# discriminated -> {"enum":{"key":"TT","tm":{"b":"test_model"}}}
+dump_and_load(MyEnum.TT(TestTypedDict(tm=TestModel(b="test_model"))))
 
 # nested -> {"enum":{"Dict":{"a":"1","b":"2"}}} 
 # separated -> {"enum":{"key":"Dict","value":{"a":"1","b":"2"}}}
+# discriminated -> not_supported
 dump_and_load(MyEnum.Dict({"a": "1", "b": "2"}))
 
 # nested -> {"enum":"OnlySelf"}
 # separated -> {"enum":{"key":"OnlySelf"}}
+# discriminated -> {"enum":{"key":"OnlySelf"}}
 dump_and_load(MyEnum.OnlySelf(...))
 
 # nested -> {"enum":{"OnlySelf2":null}} 
 # separated -> {"enum":{"key":"OnlySelf2","value":null}}
+# discriminated -> not_supported
 dump_and_load(MyEnum.OnlySelf2(None))
 ```
