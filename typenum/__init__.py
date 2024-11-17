@@ -1,4 +1,3 @@
-
 from typenum.core import TypEnum, TypEnumContent, NoValue
 
 __all__ = [

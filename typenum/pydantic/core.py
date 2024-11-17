@@ -1,11 +1,14 @@
 import importlib
 import inspect
 import typing
+import pydantic as pydantic_
+
 from dataclasses import dataclass
 
 import typing_extensions
 from annotated_types import GroupedMetadata, BaseMetadata
-from pydantic_core.core_schema import ValidationInfo
+from pydantic_core import core_schema
+from pydantic_core.core_schema import ValidationInfo, SerializerFunctionWrapHandler
 
 from typenum.core import TypEnumMeta, _TypEnum, TypEnumContent
 
@@ -16,6 +19,9 @@ __all__ = [
     "TypEnumPydanticMeta",
     "eval_content_type",
 ]
+
+from typenum.pydantic.serialization import AdjacentlyTagged, InternallyTagged, ExternallyTagged
+from typenum.pydantic.serialization.tagged import TaggedSerialization
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,7 +38,7 @@ class FieldMetadata(GroupedMetadata):
             yield Rename(self.rename)
 
 
-def eval_content_type(cls: type['TypEnumPydantic[typing.Any]']) -> type:
+def eval_content_type(cls: type['TypEnumPydantic[TypEnumContent]']) -> type:
     # Eval annotation into real object
     base = cls.__orig_bases__[0]  # type: ignore
     module = importlib.import_module(base.__module__)
@@ -40,20 +46,18 @@ def eval_content_type(cls: type['TypEnumPydantic[typing.Any]']) -> type:
 
 
 class TypEnumPydanticMeta(TypEnumMeta):
+    __serialization__: TaggedSerialization
+
     def __new__(
             cls,
             cls_name: str,
             bases: tuple[typing.Any],
             class_dict: dict[str, typing.Any],
+            variant: typing.Optional[str] = None,
+            content: typing.Optional[str] = None,
     ) -> typing.Any:
         enum_class = super().__new__(cls, cls_name, bases, class_dict)
-        try:
-            if not issubclass(enum_class, TypEnumPydantic):
-                return enum_class
-        except NameError:
-            return enum_class
-
-        if TypEnumPydantic in bases:
+        if enum_class.__annotations__.get("__abstract__"):
             return enum_class
 
         enum_class.__full_variant_name__ = cls_name
@@ -61,9 +65,16 @@ class TypEnumPydanticMeta(TypEnumMeta):
 
         if enum_class.__is_variant__:
             return enum_class
+
+        enum_class.__names_serialization__ = dict()
+        enum_class.__names_deserialization__ = dict()
+
+        if variant is not None and content is not None:
+            enum_class.__serialization__ = AdjacentlyTagged(variant, content)
+        elif variant is not None:
+            enum_class.__serialization__ = InternallyTagged(variant)
         else:
-            enum_class.__names_serialization__ = dict()
-            enum_class.__names_deserialization__ = dict()
+            enum_class.__serialization__ = ExternallyTagged()
 
         annotation: typing.Union[type[typing_extensions.Annotated[typing.Any, BaseMetadata]], type]
         for attr, annotation in enum_class.__annotations__.items():
@@ -71,7 +82,6 @@ class TypEnumPydanticMeta(TypEnumMeta):
                 continue
 
             enum_variant = getattr(enum_class, attr)
-
             if isinstance(enum_variant.__content_type__, str):
                 try:
                     enum_variant.__content_type__ = eval_content_type(enum_variant)
@@ -98,15 +108,19 @@ class TypEnumPydanticMeta(TypEnumMeta):
 
 
 class TypEnumPydantic(_TypEnum[TypEnumContent], metaclass=TypEnumPydanticMeta):
+    __abstract__: typing_extensions.Never
+
     __names_serialization__: typing.ClassVar[dict[str, str]]
     __names_deserialization__: typing.ClassVar[dict[str, str]]
 
+    __serialization__: typing.ClassVar[TaggedSerialization]
+
     @classmethod
     def __variant_constructor__(
-            cls: type["TypEnumPydantic[typing.Any]"],
+            cls: type["TypEnumPydantic[TypEnumContent]"],
             value: typing.Any,
             info: ValidationInfo,
-    ) -> "TypEnumPydantic[typing.Any]":
+    ) -> "TypEnumPydantic[TypEnumContent]":
         # Resolve types when __content_type__ declare after cls declaration
         __content_type__ = cls.__content_type__
         if isinstance(__content_type__, str):
@@ -121,9 +135,25 @@ class TypEnumPydantic(_TypEnum[TypEnumContent], metaclass=TypEnumPydanticMeta):
         return cls(value)
 
     @classmethod
+    def __get_pydantic_core_schema__(
+            cls: type["TypEnumPydantic[TypEnumContent]"],
+            source_type: typing.Any,
+            handler: pydantic_.GetCoreSchemaHandler,
+    ) -> core_schema.CoreSchema:
+        return cls.__serialization__.__get_pydantic_core_schema__(cls, source_type, handler)
+
+    @classmethod
     def __python_value_restore__(
-            cls: type["TypEnumPydantic[typing.Any]"],
+            cls: type["TypEnumPydantic[TypEnumContent]"],
             input_value: typing.Any,
             info: ValidationInfo,
     ) -> typing.Any:
-        raise NotImplementedError
+        return cls.__serialization__.__python_value_restore__(cls, input_value, info)
+
+    @classmethod
+    def __pydantic_serialization__(
+            cls: type["TypEnumPydantic[TypEnumContent]"],
+            model: typing.Any,
+            serializer: SerializerFunctionWrapHandler,
+    ) -> typing.Any:
+        return cls.__serialization__.__pydantic_serialization__(cls, model, serializer)

@@ -35,6 +35,7 @@ assert a
 ```
 
 #### With pydantic
+
 ```python
 import typing
 from dataclasses import dataclass
@@ -42,7 +43,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 
 from typenum import TypEnum, TypEnumContent, NoValue
-from typenum.pydantic import TypEnumSeparated, TypEnumNested, TypEnumDiscriminant, TypEnumDContent, FieldMetadata, Rename
+from typenum.pydantic import TypEnumPydantic, FieldMetadata, Rename
 from typing_extensions import Annotated, TypedDict
 
 
@@ -59,24 +60,24 @@ class TestDataClass:
 class TestModel(BaseModel):
     b: str
 
-    
+
 class TestTypedDict(TypedDict):
     tm: TestModel
 
 
-class SimpleEnum(TypEnumSeparated[NoValue]):
+class SimpleEnum(TypEnumPydantic[NoValue]):
     V1: type["SimpleEnum"]
     V2: type["SimpleEnum"]
 
 
-class OtherEnum(TypEnumNested[TypEnumContent]):
+class OtherEnum(TypEnumPydantic[TypEnumContent]):
     Int: type["OtherEnum[int]"]
     Int: type["OtherEnum[str]"]
 
 
-# class MyEnum(TypEnumDiscriminated[TypEnumContent], discriminant="key"): 
-# class MyEnum(TypEnumSeparated[TypEnumContent], key="key", value="value"):
-class MyEnum(TypEnumNested[TypEnumContent]):
+# class MyEnum(TypEnumPydantic[TypEnumContent], variant="key", content="value"): <- adjacently
+# class MyEnum(TypEnumPydantic[TypEnumContent], variant="key"): <- internally
+class MyEnum(TypEnumPydantic[TypEnumContent]):  # <- externally
     # MyEnum.Int(123)
     Int: type["MyEnum[int]"]
 
@@ -90,7 +91,7 @@ class MyEnum(TypEnumNested[TypEnumContent]):
     Self: type["MyEnum[MyEnum[typing.Any]]"]  # any from self variants
 
     # MyEnum.OnlySelf(...) - any parameters skipped, serialized just by name 
-    OnlySelf: type["MyEnum[NoValue]"] 
+    OnlySelf: type["MyEnum[NoValue]"]
 
     # MyEnum.OnlySelf2(None)
     OnlySelf2: type["MyEnum[None]"]
@@ -103,10 +104,10 @@ class MyEnum(TypEnumNested[TypEnumContent]):
 
     # MyEnum.DC(TestDataClass(a=1))
     DC: type["MyEnum[TestDataClass]"]
-    
+
     # MyEnum.Model(TestModel(b="2"))
-    Model: type["MyEnum[TestModel]"]    
-    
+    Model: type["MyEnum[TestModel]"]
+
     # MyEnum.TT(TestTypedDict(tm=TestModel(b="nice")))
     TT: type["MyEnum[TestTypedDict]"]
 
@@ -119,7 +120,7 @@ class MyEnum(TypEnumNested[TypEnumContent]):
 class FinModel(BaseModel):
     enum: MyEnum
 
-    
+
 def dump_and_load(e: MyEnum):
     model = FinModel(enum=e)
     json_ = model.model_dump_json()
@@ -128,58 +129,62 @@ def dump_and_load(e: MyEnum):
     assert model == restored
 
 
-# nested -> {"enum":{"Int":1}} 
-# separated -> {"enum":{"key":"Int","value":1}}
-# discriminated -> not_supported
+# externally -> {"enum":{"Int":1}} 
+# adjacently -> {"enum":{"key":"Int","value":1}}
+# internally -> not_supported
 dump_and_load(MyEnum.Int(1))
 
-# nested -> {"enum":{"Str":"str"}}
-# separated -> {"enum":{"key":"Str","value":"str"}}
-# discriminated -> not_supported
+# externally -> {"enum":{"Str":"str"}}
+# adjacently -> {"enum":{"key":"Str","value":"str"}}
+# internally -> not_supported
 dump_and_load(MyEnum.Str("str"))
 
-# nested -> {"enum":{"List":["list"]}}
-# separated -> {"enum":{"key":"List","value":["list"]}}
-# discriminated -> not_supported
+# externally -> {"enum":{"List":["list"]}}
+# adjacently -> {"enum":{"key":"List","value":["list"]}}
+# internally -> not_supported
 dump_and_load(MyEnum.List(["list"]))
 
-# nested -> {"enum":{"just_str_tuple":["str","str2"]}} 
-# separated -> {"enum":{"key":"just_str_tuple","value":["str","str2"]}}
-# discriminated -> not_supported
+# externally -> {"enum":{"just_str_tuple":["str","str2"]}} 
+# adjacently -> {"enum":{"key":"just_str_tuple","value":["str","str2"]}}
+# internally -> not_supported
 dump_and_load(MyEnum.StrTuple(("str", "str2")))
 
-# nested -> {"enum":{"Self":{"Int":1}}} 
-# separated -> {"enum":{"key":"Self","value":{"key":"Int","value":1}}}
-# discriminated -> not_supported
+# externally -> {"enum":{"Self":{"Int":1}}} 
+# adjacently -> {"enum":{"key":"Self","value":{"key":"Int","value":1}}}
+# internally -> not_supported
 dump_and_load(MyEnum.Self(MyEnum.Int(1)))
 
-# nested -> {"enum":{"DC":{"a":1}}} 
-# separated -> {"enum":{"key":"DC","value":{"a":1}}}
-# discriminated -> {"enum":{"key":"DC","a":1}}}
+# externally -> {"enum":{"DC":{"a":1}}} 
+# adjacently -> {"enum":{"key":"DC","value":{"a":1}}}
+# internally -> {"enum":{"key":"DC","a":1}}}
 dump_and_load(MyEnum.DC(TestDataClass(a=1)))
 
-# nested -> {"enum":{"Model":{"b":"test_model"}}} 
-# separated -> {"enum":{"key":"Model","value":{"b":"test_model"}}}
-# discriminated -> {"enum":{"key":"Model", "b":"test_model"}}
+# externally -> {"enum":{"Model":{"b":"test_model"}}} 
+# adjacently -> {"enum":{"key":"Model","value":{"b":"test_model"}}}
+# internally -> {"enum":{"key":"Model", "b":"test_model"}}
 dump_and_load(MyEnum.Model(TestModel(b="test_model")))
 
-# nested -> {"enum":{"TT":{"tm":{"b":"test_model"}}}} 
-# separated -> {"enum":{"key":"TT","value":{"tm":{"b":"test_model"}}}}
-# discriminated -> {"enum":{"key":"TT","tm":{"b":"test_model"}}}
+# externally -> {"enum":{"TT":{"tm":{"b":"test_model"}}}} 
+# adjacently -> {"enum":{"key":"TT","value":{"tm":{"b":"test_model"}}}}
+# internally -> {"enum":{"key":"TT","tm":{"b":"test_model"}}}
 dump_and_load(MyEnum.TT(TestTypedDict(tm=TestModel(b="test_model"))))
 
-# nested -> {"enum":{"Dict":{"a":"1","b":"2"}}} 
-# separated -> {"enum":{"key":"Dict","value":{"a":"1","b":"2"}}}
-# discriminated -> not_supported
+# externally -> {"enum":{"Dict":{"a":"1","b":"2"}}} 
+# adjacently -> {"enum":{"key":"Dict","value":{"a":"1","b":"2"}}}
+# internally -> not_supported
 dump_and_load(MyEnum.Dict({"a": "1", "b": "2"}))
 
-# nested -> {"enum":"OnlySelf"}
-# separated -> {"enum":{"key":"OnlySelf"}}
-# discriminated -> {"enum":{"key":"OnlySelf"}}
+# externally -> {"enum":"OnlySelf"}
+# adjacently -> {"enum":{"key":"OnlySelf"}}
+# internally -> {"enum":{"key":"OnlySelf"}}
 dump_and_load(MyEnum.OnlySelf(...))
 
-# nested -> {"enum":{"OnlySelf2":null}} 
-# separated -> {"enum":{"key":"OnlySelf2","value":null}}
-# discriminated -> not_supported
+# externally -> {"enum":{"OnlySelf2":null}} 
+# adjacently -> {"enum":{"key":"OnlySelf2","value":null}}
+# internally -> not_supported
 dump_and_load(MyEnum.OnlySelf2(None))
 ```
+
+#### Other
+
+ - [Compatibility](docs/compatibility.md)

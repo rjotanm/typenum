@@ -8,6 +8,8 @@ __all__ = [
     "TypEnumMeta",
 ]
 
+import typing_extensions
+
 from annotated_types import BaseMetadata
 from typing_extensions import Annotated
 
@@ -34,6 +36,8 @@ class TypEnumMeta(type):
             class_dict: dict[str, typing.Any],
     ) -> typing.Any:
         enum_class = super().__new__(cls, cls_name, bases, class_dict)
+        if enum_class.__annotations__.get("__abstract__"):
+            return enum_class
 
         if enum_class.__is_variant__:
             return enum_class
@@ -114,6 +118,8 @@ class _TypEnum(typing.Generic[TypEnumContent], metaclass=TypEnumMeta):
 
     __is_variant__: typing.ClassVar[bool] = False
 
+    __abstract__: typing_extensions.Never
+
     value: typing.Optional[TypEnumContent]
 
     def __init__(self, value: TypEnumContent):
@@ -135,4 +141,4 @@ class _TypEnum(typing.Generic[TypEnumContent], metaclass=TypEnumMeta):
 
 
 class TypEnum(_TypEnum[TypEnumContent]):
-    pass
+    __abstract__: typing_extensions.Never
