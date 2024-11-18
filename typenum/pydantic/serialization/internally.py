@@ -1,4 +1,3 @@
-import inspect
 import typing
 
 import pydantic as pydantic_

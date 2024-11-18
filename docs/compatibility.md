@@ -1,3 +1,5 @@
+# Compatibility
+
 #### Rust Serde
 
 [Serde documentation](https://serde.rs/enum-representations.html) have Externally\Internally\Adjacently tagged enum representation.
@@ -244,7 +246,6 @@ dump_and_load(MyEnum.Dict({a: "1", b: "2"}))
 // python: MyEnum.Optional(None)
 dump_and_load(MyEnum.Optional(null))
 ```
-
 
 #### Other
 
