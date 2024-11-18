@@ -8,7 +8,7 @@ When we see on Rust\TypeScript type system, we can declare object with typed pro
 import { unionize, ofType } from "unionize";
 
 const MyEnum = unionioze({
-    Obj: ofType<{a: int, b: str}>(),
+    Obj: ofType<{a: number; b: string}>(),
 })
 ```
 
@@ -53,7 +53,7 @@ class FinEnum(TypEnum[NoValue]):
     Empty: type['MyEnum']
 ```
 
-TypeScript don\`t have same special type, so extension have same.
+TypeScript don\`t have same special type (so as extension).
 As a solution, should use variant that contain empty object, something like this
 
 ```typescript
@@ -141,4 +141,24 @@ class EnumContaining(TypedDict):
 class MyEnum(TypEnum[TypEnumContent]):
     Int: type['MyEnum[int]']
     Ref: type['MyEnum[EnumContaining]']
+```
+
+#### 4. Internally representation should use for objects only
+
+```python
+from typenum import TypEnum, TypEnumContent
+
+class MyEnum(TypEnum[TypEnumContent], key="key"):
+    Int: type['MyEnum[int]']  # bad, error on runtime, but pass type check
+```
+
+```python
+from typing_extensions import TypedDict
+from typenum import TypEnum, TypEnumContent
+
+class IntDict(TypedDict):
+    val: int
+
+class MyEnum(TypEnum[TypEnumContent], key="key"):
+    Int: type['MyEnum[IntDict]']  # good, ambiguous, use other representation when possible
 ```

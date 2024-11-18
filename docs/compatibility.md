@@ -125,6 +125,8 @@ fn main() {
 
 TypeScript has library [unionize](https://github.com/pelotom/unionize) than provide Internally\Adjacently tagged representation.
 
+For compatibility with this library was written extension over unionize: [extUnionize](https://github.com/rjotanm/ext-unionize) than provide Externally tagged representation.
+
 ```typescript
 import { unionize, ofType } from "unionize";
 import { extUnionize } from "ext-unionize";
