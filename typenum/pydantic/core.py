@@ -116,17 +116,19 @@ class TypEnumPydantic(_TypEnum[TypEnumContent], metaclass=TypEnumPydanticMeta):
     __serialization__: typing.ClassVar[TaggedSerialization]
 
     @classmethod
+    def content_type(cls) -> type:
+        # Resolve types when __content_type__ declare after cls declaration
+        if isinstance(cls.__content_type__, str):
+            cls.__content_type__ = eval_content_type(cls)
+        return cls.__content_type__
+
+    @classmethod
     def __variant_constructor__(
             cls: type["TypEnumPydantic[TypEnumContent]"],
             value: typing.Any,
             info: ValidationInfo,
     ) -> "TypEnumPydantic[TypEnumContent]":
-        # Resolve types when __content_type__ declare after cls declaration
-        __content_type__ = cls.__content_type__
-        if isinstance(__content_type__, str):
-            __content_type__ = eval_content_type(cls)
-
-        if inspect.isclass(__content_type__) and issubclass(__content_type__, TypEnumPydantic):
+        if inspect.isclass(cls.__content_type__) and issubclass(cls.__content_type__, TypEnumPydantic):
             value = cls.__python_value_restore__(value, info)
 
         return cls(value)
