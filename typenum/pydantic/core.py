@@ -128,7 +128,7 @@ class TypEnumPydantic(_TypEnum[TypEnumContent], metaclass=TypEnumPydanticMeta):
             value: typing.Any,
             info: ValidationInfo,
     ) -> "TypEnumPydantic[TypEnumContent]":
-        if inspect.isclass(cls.__content_type__) and issubclass(cls.__content_type__, TypEnumPydantic):
+        if inspect.isclass(cls.content_type()) and issubclass(cls.content_type(), TypEnumPydantic):
             value = cls.__python_value_restore__(value, info)
 
         return cls(value)
