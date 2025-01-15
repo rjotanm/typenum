@@ -1,7 +1,7 @@
 [tool.poetry]
 package-mode = true
 name = "typenum"
-version = "0.3.0"
+version = "0.3.1"
 
 authors = [
     "Rinat Balbekov <me@rjotanm.dev>",
